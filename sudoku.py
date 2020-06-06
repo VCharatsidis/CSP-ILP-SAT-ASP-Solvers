@@ -14,11 +14,11 @@ from pysat.solvers import MinisatGH
 from ortools.sat.python import cp_model
 
 
-#INPUT = "inputs\\hard5.sudoku"
 #INPUT = "inputs\\hard3.sudoku"
+INPUT = "inputs\\hard5.sudoku"
 
 #INPUT = "inputs\\easy3.sudoku"
-INPUT = "inputs\\easy5.sudoku"
+#INPUT = "inputs\\easy5.sudoku"
 
 #INPUT = "inputs\\empty3.sudoku"
 #INPUT = "inputs\\empty5.sudoku"
@@ -343,7 +343,7 @@ def solve_sudoku_prop(sudoku,k):
             return None;
         else:
             # Propagate
-            propagate(sudoku_possible_values,k);
+            propagate(sudoku_possible_values, k);
             # Check for contradictions
             if contradiction(sudoku_possible_values):
                 return None;
