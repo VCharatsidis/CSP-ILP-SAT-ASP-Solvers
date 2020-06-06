@@ -9,8 +9,18 @@ from sudoku_core import solve_sudoku_ASP
 from sudoku_core import solve_sudoku_ILP
 from sudoku_core import propagate
 
+from pysat.formula import CNF
+from pysat.solvers import MinisatGH
+from ortools.sat.python import cp_model
 
-INPUT = "inputs\\easy3.sudoku"
+
+#INPUT = "inputs\\hard5.sudoku"
+#INPUT = "inputs\\hard3.sudoku"
+
+#INPUT = "inputs\\easy3.sudoku"
+
+#INPUT = "inputs\\empty3.sudoku"
+INPUT = "inputs\\empty5.sudoku"
 
 ### Main
 def main():
@@ -92,7 +102,7 @@ def main():
         if verbose:
             print("Solving sudoku using recursion and propagation..")
             timer.start()
-        with suppress_stdout_stderr():
+        #with suppress_stdout_stderr():
             solved_sudoku = solve_sudoku_prop(sudoku, k)
         if verbose:
             timer.stop()
@@ -249,7 +259,7 @@ def solve_sudoku_prop(sudoku,k):
         row_possibilities = [];
         for element in row:
             if element == 0:
-                possibilities = list(range(1,k**2+1));
+                possibilities = list(range(1, k**2+1));
             else:
                 possibilities = [element];
             row_possibilities.append(possibilities);
