@@ -18,9 +18,10 @@ from ortools.sat.python import cp_model
 #INPUT = "inputs\\hard3.sudoku"
 
 #INPUT = "inputs\\easy3.sudoku"
+INPUT = "inputs\\easy5.sudoku"
 
 #INPUT = "inputs\\empty3.sudoku"
-INPUT = "inputs\\empty5.sudoku"
+#INPUT = "inputs\\empty5.sudoku"
 
 ### Main
 def main():
