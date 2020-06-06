@@ -9,19 +9,16 @@ from sudoku_core import solve_sudoku_ASP
 from sudoku_core import solve_sudoku_ILP
 from sudoku_core import propagate
 
-from pysat.formula import CNF
-from pysat.solvers import MinisatGH
 from ortools.sat.python import cp_model
 
-
 #INPUT = "inputs\\hard3.sudoku"
-INPUT = "inputs\\hard5.sudoku"
+#INPUT = "inputs\\hard5.sudoku"
 
 #INPUT = "inputs\\easy3.sudoku"
 #INPUT = "inputs\\easy5.sudoku"
 
 #INPUT = "inputs\\empty3.sudoku"
-#INPUT = "inputs\\empty5.sudoku"
+INPUT = "inputs\\empty5.sudoku"
 
 ### Main
 def main():
@@ -30,7 +27,7 @@ def main():
     # parser.add_argument("input", help="Input file");
     parser.add_argument("-i", "--input", default=INPUT, help="input file")
     parser.add_argument("-v", "--verbose", default=True, help="verbose mode", action="store_true")
-    parser.add_argument("-s", "--solver", choices=["sat", "csp", "asp", "ilp", "prop"], default="prop", help="selects which solver to use (default: prop)");
+    parser.add_argument("-s", "--solver", choices=["sat", "csp", "asp", "ilp", "prop"], default="sat", help="selects which solver to use (default: prop)");
     args = parser.parse_args(map(lambda x: x.lower(),sys.argv[1:]));
 
     input = args.input;
@@ -40,7 +37,7 @@ def main():
     # Read sudoku from input file
     if verbose:
         print("Reading sudoku from " + input + "..");
-    k,sudoku = read_sudoku_from_file(input);
+    k, sudoku = read_sudoku_from_file(input);
 
     if sudoku == None:
         print("Exiting..");
@@ -49,7 +46,7 @@ def main():
     # Print information, in verbose mode
     if verbose:
         print("Input sudoku:");
-        print(pretty_repr(sudoku,k));
+        print(pretty_repr(sudoku, k));
 
     # Solve the sudoku using the selected solver
     solved_sudoku = None;
@@ -58,8 +55,8 @@ def main():
         if verbose:
             print("Solving sudoku using the SAT encoding..");
             timer.start();
-        with suppress_stdout_stderr():
-            solved_sudoku = solve_sudoku_SAT(sudoku,k);
+        #with suppress_stdout_stderr():
+            solved_sudoku = solve_sudoku_SAT(sudoku, k);
         if verbose:
             timer.stop();
 
