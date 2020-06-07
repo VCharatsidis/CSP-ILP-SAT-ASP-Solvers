@@ -3,6 +3,56 @@ from pysat.solvers import MinisatGH
 import numpy as np
 # CSP dependencies
 from ortools.sat.python import cp_model
+import clingo
+import gurobipy as gp
+from gurobipy import GRB
+
+
+
+def make_sudoku_graph(k):
+    vertices = []
+    for row in range(k ** 2):
+        row = list(range((row * k ** 2), (row + 1) * (k ** 2)))
+        vertices.append(row)
+
+    edges = []
+    for i in range(k ** 2):
+        for j in range(k ** 2):
+
+            vertex_1 = vertices[i][j] + 1
+
+            # connect vertices in the same row
+            for col in range(k ** 2):
+                vertex_2 = vertices[i][col] + 1
+                if vertex_2 != vertex_1:
+                    edge = (vertex_1, vertex_2)
+                    rev_edge = (vertex_2, vertex_1)
+                    if edge not in edges and rev_edge not in edges:
+                        edges.append(edge)
+
+            # connect vertices in the same col
+            for row in range(k ** 2):
+                vertex_2 = vertices[row][j] + 1
+                if vertex_2 != vertex_1:
+                    edge = (vertex_1, vertex_2)
+                    rev_edge = (vertex_2, vertex_1)
+                    if edge not in edges and rev_edge not in edges:
+                        edges.append(edge)
+
+            # connect vertices in the same box
+            col = j // k
+            row = i // k
+            for bi in range(k):
+                for bj in range(k):
+                    vertex_2 = vertices[row * k + bi][col * k + bj] + 1
+                    if vertex_2 != vertex_1:
+                        edge = (vertex_1, vertex_2)
+                        rev_edge = (vertex_2, vertex_1)
+                        if edge not in edges and rev_edge not in edges:
+                            edges.append(edge)
+
+    return vertices, edges
+
 
 ###
 ### Propagation function to be used in the recursive sudoku solver
@@ -54,20 +104,26 @@ def propagate(sudoku_possible_values,k):
         for i in range(k ** 2):
             for j in range(k ** 2):
                 to_be_removed = []
-                # Remove numbers that cannot be used because they exist in the same row
+                # Remove numbers that cannot be used because:
                 if(len(sudoku_possible_values[i][j])) > 1:
                     for possibility in sudoku_possible_values[i][j]:
+                        # they exist in the same row
                         if possibility in used_row[i]:
                             to_be_removed.append(possibility)
 
+                        # they exist in the same col
                         if possibility in used_col[j]:
                             to_be_removed.append(possibility)
 
+                        # they exist in the same box
                         if possibility in used_square[(i // k) * k + j // k]:
                             to_be_removed.append(possibility)
 
                     sudoku_possible_values[i][j] = [x for x in sudoku_possible_values[i][j] if x not in to_be_removed]
 
+                    # if after the deletion of impossible values the cell is left with 1 possibility
+                    # append it in the list of unusables for other cells
+                    # and stay in the while loop for another refinement.
                     if(len(sudoku_possible_values[i][j])) == 1:
                         change = True
                         certain_value = sudoku_possible_values[i][j][0]
@@ -84,48 +140,8 @@ def propagate(sudoku_possible_values,k):
 ### Solver that uses SAT encoding
 ###
 def solve_sudoku_SAT(sudoku, k):
-
     num_vertices = k ** 4
-    vertices = []
-    for row in range(k**2):
-        row = list(range((row * k**2), (row+1)*(k**2)))
-        vertices.append(row)
-
-    edges = []
-    for i in range(k ** 2):
-        for j in range(k ** 2):
-
-            vertex_1 = vertices[i][j]+1
-
-            # connect vertices in the same row
-            for col in range(k ** 2):
-                vertex_2 = vertices[i][col] + 1
-                if vertex_2 != vertex_1:
-                    edge = (vertex_1, vertex_2)
-                    rev_edge = (vertex_2, vertex_1)
-                    if edge not in edges and rev_edge not in edges:
-                        edges.append(edge)
-
-            # connect vertices in the same col
-            for row in range(k ** 2):
-                vertex_2 = vertices[row][j] + 1
-                if vertex_2 != vertex_1:
-                    edge = (vertex_1, vertex_2)
-                    rev_edge = (vertex_2, vertex_1)
-                    if edge not in edges and rev_edge not in edges:
-                        edges.append(edge)
-
-            # connect vertices in the same box
-            col = j // k
-            row = i // k
-            for bi in range(k):
-                for bj in range(k):
-                    vertex_2 = vertices[row * k + bi][col * k + bj] + 1
-                    if vertex_2 != vertex_1:
-                        edge = (vertex_1, vertex_2)
-                        rev_edge = (vertex_2, vertex_1)
-                        if edge not in edges and rev_edge not in edges:
-                            edges.append(edge)
+    vertices, edges = make_sudoku_graph(k)
 
     number_colors = k ** 2
     formula = CNF()
@@ -159,9 +175,9 @@ def solve_sudoku_SAT(sudoku, k):
                 formula.append(clause)
 
     # Ensure that the rules of sudoku are kept, no adjacent vertices should have the same color/value.
-    for (i1, i2) in edges:
+    for (v1, v2) in edges:
         for c in range(1, number_colors + 1):
-            clause = [-1 * var_number(i1, c), -1 * var_number(i2, c)]
+            clause = [-1 * var_number(v1, c), -1 * var_number(v2, c)]
             formula.append(clause)
 
     solver = MinisatGH()
@@ -195,47 +211,7 @@ def solve_sudoku_SAT(sudoku, k):
 ###
 def solve_sudoku_CSP(sudoku,k):
     num_vertices = k ** 4
-    vertices = []
-    for row in range(k ** 2):
-        row = list(range((row * k ** 2), (row + 1) * (k ** 2)))
-        vertices.append(row)
-
-    edges = []
-    for i in range(k ** 2):
-        for j in range(k ** 2):
-
-            vertex_1 = vertices[i][j] + 1
-
-            # connect vertices in the same row
-            for col in range(k ** 2):
-                vertex_2 = vertices[i][col] + 1
-                if vertex_2 != vertex_1:
-                    edge = (vertex_1, vertex_2)
-                    rev_edge = (vertex_2, vertex_1)
-                    if edge not in edges and rev_edge not in edges:
-                        edges.append(edge)
-
-            # connect vertices in the same col
-            for row in range(k ** 2):
-                vertex_2 = vertices[row][j] + 1
-                if vertex_2 != vertex_1:
-                    edge = (vertex_1, vertex_2)
-                    rev_edge = (vertex_2, vertex_1)
-                    if edge not in edges and rev_edge not in edges:
-                        edges.append(edge)
-
-            # connect vertices in the same box
-            col = j // k
-            row = i // k
-            for bi in range(k):
-                for bj in range(k):
-                    vertex_2 = vertices[row * k + bi][col * k + bj] + 1
-                    if vertex_2 != vertex_1:
-                        edge = (vertex_1, vertex_2)
-                        rev_edge = (vertex_2, vertex_1)
-                        if edge not in edges and rev_edge not in edges:
-                            edges.append(edge)
-
+    vertices, edges = make_sudoku_graph(k)
     num_colors = k**2
     model = cp_model.CpModel()
     vars = dict()
@@ -253,8 +229,8 @@ def solve_sudoku_CSP(sudoku,k):
     for (i, j) in edges:
         model.Add(vars[i] != vars[j])
 
-    solver = cp_model.CpSolver();
-    answer = solver.Solve(model);
+    solver = cp_model.CpSolver()
+    answer = solver.Solve(model)
 
     flatten_vertices = np.array(vertices).reshape(num_vertices)
 
@@ -277,8 +253,59 @@ def solve_sudoku_CSP(sudoku,k):
 def solve_sudoku_ASP(sudoku,k):
     return None;
 
+
+
+
+
+
+
+
 ###
 ### Solver that uses ILP encoding
 ###
 def solve_sudoku_ILP(sudoku,k):
-    return None;
+    model = gp.Model()
+    vertices, edges = make_sudoku_graph(k)
+    num_vertices = k**4
+    num_colors = k**2
+
+    flatten_sudoku = np.array(sudoku).reshape(num_vertices)
+
+    # Make variables
+    vars = dict()
+    for i in range(1, num_vertices + 1):
+        sudoku_value = int(flatten_sudoku[i - 1])
+        if sudoku_value == 0:
+            for c in range(1, num_colors + 1):
+                vars[(i, c)] = model.addVar(vtype=GRB.BINARY, name="x({},{})".format(i, c))
+        else:
+            vars[(i, sudoku_value)] = model.addVar(vtype=GRB.BINARY, name="x({},{})".format(i, sudoku_value))
+
+    # Add constraints
+    for i in range(1, num_vertices + 1):
+        sudoku_value = int(flatten_sudoku[i - 1])
+        if sudoku_value == 0:
+            model.addConstr(gp.quicksum([vars[(i, c)] for c in range(1, num_colors + 1)]) == 1)
+        else:
+            model.addConstr(gp.quicksum([vars[(i, sudoku_value)]]) == 1)
+
+    # Enusre that the values are proper.
+    for (v1, v2) in edges:
+        for c in range(1, num_colors + 1):
+            if (v1, c) in vars.keys() and (v2, c) in vars.keys():
+                model.addConstr(vars[(v1, c)] + vars[(v2, c)] <= 1)
+
+    model.optimize()
+
+    flatten_vertices = np.array(vertices).reshape(num_vertices)
+
+    if model.status == GRB.OPTIMAL:
+        for i in range(1, num_vertices + 1):
+            for c in range(1, num_colors + 1):
+                if (i, c) in vars.keys():
+                    if vars[(i, c)].x == 1:
+                        flatten_vertices[i - 1] = c
+        return flatten_vertices.reshape(k**2, k**2).tolist()
+
+    else:
+        return None
