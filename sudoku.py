@@ -27,7 +27,7 @@ def main():
     # parser.add_argument("input", help="Input file");
     parser.add_argument("-i", "--input", default=INPUT, help="input file")
     parser.add_argument("-v", "--verbose", default=True, help="verbose mode", action="store_true")
-    parser.add_argument("-s", "--solver", choices=["sat", "csp", "asp", "ilp", "prop"], default="csp", help="selects which solver to use (default: prop)");
+    parser.add_argument("-s", "--solver", choices=["sat", "csp", "asp", "ilp", "prop"], default="asp", help="selects which solver to use (default: prop)");
     args = parser.parse_args(map(lambda x: x.lower(),sys.argv[1:]));
 
     input = args.input;
@@ -79,7 +79,7 @@ def main():
             print("Solving sudoku using the ASP encoding..");
             timer.start();
 
-        with suppress_stdout_stderr():
+        #with suppress_stdout_stderr():
             solved_sudoku = solve_sudoku_ASP(sudoku,k);
         if verbose:
             timer.stop();

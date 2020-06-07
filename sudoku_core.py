@@ -251,6 +251,54 @@ def solve_sudoku_CSP(sudoku,k):
 ### Solver that uses ASP encoding
 ###
 def solve_sudoku_ASP(sudoku,k):
+    num_vertices = k ** 4
+    vertices, edges = make_sudoku_graph(k)
+
+    number_colors = k ** 2
+
+    asp_code =""""""
+    for row in vertices:
+        for cell in row:
+            asp_code += "vertex(v" + str(cell) + ").\n"
+
+    for edge in edges:
+        asp_code += "edge(v" + str(edge[0]) + ",v"+str(edge[1]) + ").\n"
+
+    for c in range(number_colors):
+        asp_code += "color(V," + str(c+1) + ") :- vertex(V),"
+        for c_other in range(number_colors):
+            if c != c_other:
+                asp_code += " not color(V," + str(c_other+1) + ")"
+
+        asp_code += ".\n"
+
+    # for edge in edges:
+    #     asp_code += ":- edge" + str(edge) + ", color(" + str(edge[0]) + ",C), " + "color(" + str(edge[1]) + ",C).\n"
+
+    asp_code += """:- edge(V1,V2), color(V1,C), color(V2,C).\n"""
+
+    asp_code += """#show color/2."""
+
+    print(asp_code)
+
+    control = clingo.Control()
+    control.add("base", [], asp_code)
+    control.ground([("base", [])])
+
+    def on_model(model):
+        print(model.symbols(shown=True))
+
+    control.configuration.solve.models = 0
+    answer = control.solve(on_model=on_model)
+
+
+    if answer.satisfiable == True:
+        print("sudoku solution")
+    else:
+        print("There is not solution")
+
+    print(asp_code)
+    input()
     return None;
 
 
@@ -275,7 +323,9 @@ def solve_sudoku_ILP(sudoku,k):
     vars = dict()
     for i in range(1, num_vertices + 1):
         sudoku_value = int(flatten_sudoku[i - 1])
-        if sudoku_value == 0:
+        not_assigned = sudoku_value == 0
+
+        if not_assigned:
             for c in range(1, num_colors + 1):
                 vars[(i, c)] = model.addVar(vtype=GRB.BINARY, name="x({},{})".format(i, c))
         else:
@@ -284,12 +334,14 @@ def solve_sudoku_ILP(sudoku,k):
     # Add constraints
     for i in range(1, num_vertices + 1):
         sudoku_value = int(flatten_sudoku[i - 1])
-        if sudoku_value == 0:
+        not_assigned = sudoku_value == 0
+
+        if not_assigned:
             model.addConstr(gp.quicksum([vars[(i, c)] for c in range(1, num_colors + 1)]) == 1)
         else:
             model.addConstr(gp.quicksum([vars[(i, sudoku_value)]]) == 1)
 
-    # Enusre that the values are proper.
+    # Ensure that the values are proper.
     for (v1, v2) in edges:
         for c in range(1, num_colors + 1):
             if (v1, c) in vars.keys() and (v2, c) in vars.keys():
