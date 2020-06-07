@@ -140,13 +140,14 @@ def solve_sudoku_SAT(sudoku, k):
     for i in range(1, num_vertices + 1):
         clause = []
 
-        not_assigned = int(flatten_sudoku[i - 1]) == 0
+        sudoku_value = int(flatten_sudoku[i - 1])
+        not_assigned = sudoku_value == 0
 
         if not_assigned:
             for c in range(1, number_colors + 1):
                 clause.append(var_number(i, c))
         else:
-            clause.append(var_number(i, int(flatten_sudoku[i - 1])))
+            clause.append(var_number(i, sudoku_value))
 
         formula.append(clause)
 
@@ -193,179 +194,81 @@ def solve_sudoku_SAT(sudoku, k):
 ### Solver that uses CSP encoding
 ###
 def solve_sudoku_CSP(sudoku,k):
-    # First we create a list containing all the edges for all vertices in the sudoku
-    length = len(sudoku)
-    num_vertices = length ** 2
-    matrix = np.arange(num_vertices).reshape(length, length)
-    # edges = {'squares':[], 'rows':[], 'columns':[]}
+    num_vertices = k ** 4
+    vertices = []
+    for row in range(k ** 2):
+        row = list(range((row * k ** 2), (row + 1) * (k ** 2)))
+        vertices.append(row)
+
     edges = []
-    sudoku = np.array(sudoku).reshape(length * length)
+    for i in range(k ** 2):
+        for j in range(k ** 2):
 
-    # The loop below fills the edges list with all edges in the sudoku
-    for i in range(length):
-        for j in range(length):
+            vertex_1 = vertices[i][j] + 1
 
-            # specify the current value i,j as the left-hand value for the edge tuple
-            left = int(matrix[i][j] + 1)
+            # connect vertices in the same row
+            for col in range(k ** 2):
+                vertex_2 = vertices[i][col] + 1
+                if vertex_2 != vertex_1:
+                    edge = (vertex_1, vertex_2)
+                    rev_edge = (vertex_2, vertex_1)
+                    if edge not in edges and rev_edge not in edges:
+                        edges.append(edge)
 
-            # iterate over values in the square
+            # connect vertices in the same col
+            for row in range(k ** 2):
+                vertex_2 = vertices[row][j] + 1
+                if vertex_2 != vertex_1:
+                    edge = (vertex_1, vertex_2)
+                    rev_edge = (vertex_2, vertex_1)
+                    if edge not in edges and rev_edge not in edges:
+                        edges.append(edge)
+
+            # connect vertices in the same box
             col = j // k
             row = i // k
-            rows = matrix[(row * k):(row * k + k)]
-            box = [x[(col * k):(col * k + k)] for x in rows]
-            for v in range(k):
-                for w in range(k):
-                    right = int(box[v][w] + 1)
+            for bi in range(k):
+                for bj in range(k):
+                    vertex_2 = vertices[row * k + bi][col * k + bj] + 1
+                    if vertex_2 != vertex_1:
+                        edge = (vertex_1, vertex_2)
+                        rev_edge = (vertex_2, vertex_1)
+                        if edge not in edges and rev_edge not in edges:
+                            edges.append(edge)
 
-                    # make sure that we're not assigning the current value as the right-hand vertix
-                    if (row * k + v, col * k + w) != (i, j):
-                        if (right, left) not in edges:
-                            edges.append((left, right))
-
-            # iterative over cells in row i,
-            for g in range(length):
-                right = int(matrix[i][g] + 1)
-                if (i, g) != (i, j):
-                    if (right, left) not in edges:
-                        edges.append((left, right))
-
-            # iterate over cells in column j,
-            for c in range(length):
-                right = int(matrix[c][j] + 1)
-                if (c, j) != (i, j):
-                    if (right, left) not in edges:
-                        # edges['columns'].append((left, right))
-                        edges.append((left, right))
-
-    # for each variable in the sudoku we set a domain d {1,2,.....,9}, except for the variables
-    # for which we already have a fixed value
-
-    print(len(edges))
-    # sys.exit()
-    # max_val = sum(range(0,length+1))
-    # print(max_val)
+    num_colors = k**2
     model = cp_model.CpModel()
     vars = dict()
+    flatten_sudoku = np.array(sudoku).reshape(num_vertices)
 
-    # domain = {}
-    # for i in range(1, num_vertices +1):
-    #     domain[i] = []
-    #
-    # boxes = []
-    # for i in range(k):
-    #     for j in range(k):
-    #         box = []
-    #         rows = matrix[i*k:(i+1)*k]
-    #         for row in rows:
-    #             subrow = row[j*k:(j+1)*k].tolist()
-    #             for x in subrow:
-    #                 box.append(sudoku[x])
-    #         boxes.append(box)
-    #
-    # rows = []
-    # for i in range(length):
-    #     row = []
-    #     for j in range(length):
-    #         row.append(sudoku[matrix[i][j]])
-    #     # for idx in range(1, idxs)
-    #     rows.append(row)
-    #
-    # columns = []
-    # for i in range(length):
-    #     column = []
-    #     for j in range(length):
-    #         column.append(sudoku[matrix[j][i]])
-    #     # for idx in range(1, idxs)
-    #     columns.append(column)
-    #
-    # columns = columns * length
-    #
-    # for i in range(num_vertices):
-    #     row_idx = i // length
-    #     for x in rows[row_idx]:
-    #         domain[i+1].append(x)
-    #
-    # for i in range(num_vertices):
-    #     for x in columns[i]:
-    #         domain[i+1].append(x)
-    #
-    # # for i in range(1, length+1):
-    # #     for j in range(1, length+1):
-    # #         idx = i*j
-    # #         for x in boxes[i-1]:
-    # #             domain[idx].append(x)
-    #
-    # print(set(domain[2]))
-    #
-    #
-    # # for i in range(1, length+1):
-    # #     for j in range(1, length+1):
-    # #         idx = i*j
-    # #         for x in boxes[i-1]:
-    # #             domain[idx].append(x)
-    #
-    #
-    #         # for x in rows[i-1]:
-    #         #     domain[idx].append(x)
-    #         # for x in columns[i-1]:
-    #         #     domain[idx].append(x)
-    #
-    #         # domain[idx].append(rows[i-1])
-    #
-    #         # domain[idx].append(columns)
-    #
-    #     # print(set(domain[24]))
-    #     # sys.exit()
-    #
-    #
-    #
-    # Set domains for each variable
-    for i in range(1, num_vertices + 1):
-        sudoku_val = int(sudoku[i - 1])
-        if sudoku_val == 0:
-            vars[i] = model.NewIntVar(1, length, "x{}".format(i))
+    for i in range(1, num_vertices+1):
+        sudoku_value = int(flatten_sudoku[i - 1])
+        not_assigned = sudoku_value == 0
+
+        if not_assigned:
+            vars[i] = model.NewIntVar(1, num_colors, "x{}".format(i))
         else:
-            vars[i] = model.NewIntVar(sudoku_val, sudoku_val, "x{}".format(i))
-            # vars[i] = model.NewIntVar(1, 9, "x{}".format(i))
+            vars[i] = model.NewIntVar(sudoku_value, sudoku_value, "x{}".format(i))
 
     for (i, j) in edges:
-        # model.AddAllDifferent([vars[i], vars[j]])
         model.Add(vars[i] != vars[j])
-    # for i in range(length):
-    #     row = []
-    #     for j in range(length):
-    #         row.append(vars[matrix[i][j]+1])
-    #     model.Add(sum(row) == max_val)
-    #     model.AddAllDifferent(row)
-    #
-    # for i in range(length):
-    #     col = []
-    #     for j in range(length):
-    #         col.append(vars[matrix[j][i]+1])
-    #     model.Add(sum(col) == max_val)
-    #     model.AddAllDifferent(col)
-    #
-    # for i in range(k):
-    #     for j in range(k):
-    #         rows = matrix[i*k:(i+1)*k]
-    #         box = []
-    #         for row in rows:
-    #             subrow = row[j*k:(j+1)*k].tolist()
-    #             for x in subrow:
-    #                 box.append(vars[x+1])
-    #         model.Add(sum(box) == max_val)
-    #         model.AddAllDifferent(box)
-    # print('start solving')
 
-    solver = cp_model.CpSolver()
-    answer = solver.Solve(model)
-    matrix = matrix.reshape(length ** 2)
+    solver = cp_model.CpSolver();
+    answer = solver.Solve(model);
+
+    flatten_vertices = np.array(vertices).reshape(num_vertices)
+
     if answer == cp_model.FEASIBLE:
         for i in range(1, num_vertices + 1):
-            matrix[i - 1] = solver.Value(vars[i])
-        return matrix.reshape(length, length).tolist()
+            flatten_vertices[i - 1] = solver.Value(vars[i])
+        return flatten_vertices.reshape(k**2, k**2).tolist()
     else:
         return None
+
+
+
+
+
 
 
 ###

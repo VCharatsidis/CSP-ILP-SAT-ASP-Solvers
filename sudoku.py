@@ -11,14 +11,14 @@ from sudoku_core import propagate
 
 from ortools.sat.python import cp_model
 
-#INPUT = "inputs\\hard3.sudoku"
+INPUT = "inputs\\hard3.sudoku"
 #INPUT = "inputs\\hard5.sudoku"
 
 #INPUT = "inputs\\easy3.sudoku"
 #INPUT = "inputs\\easy5.sudoku"
 
 #INPUT = "inputs\\empty3.sudoku"
-INPUT = "inputs\\empty5.sudoku"
+#INPUT = "inputs\\empty5.sudoku"
 
 ### Main
 def main():
@@ -27,7 +27,7 @@ def main():
     # parser.add_argument("input", help="Input file");
     parser.add_argument("-i", "--input", default=INPUT, help="input file")
     parser.add_argument("-v", "--verbose", default=True, help="verbose mode", action="store_true")
-    parser.add_argument("-s", "--solver", choices=["sat", "csp", "asp", "ilp", "prop"], default="sat", help="selects which solver to use (default: prop)");
+    parser.add_argument("-s", "--solver", choices=["sat", "csp", "asp", "ilp", "prop"], default="csp", help="selects which solver to use (default: prop)");
     args = parser.parse_args(map(lambda x: x.lower(),sys.argv[1:]));
 
     input = args.input;
@@ -67,7 +67,7 @@ def main():
             print("Solving sudoku using the CSP encoding..");
             timer.start();
 
-        with suppress_stdout_stderr():
+        #with suppress_stdout_stderr():
             solved_sudoku = solve_sudoku_CSP(sudoku,k);
         if verbose:
             timer.stop();
