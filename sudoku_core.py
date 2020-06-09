@@ -256,30 +256,48 @@ def solve_sudoku_ASP(sudoku,k):
 
     number_colors = k ** 2
 
-    asp_code =""""""
+    asp_code = """"""
     for row in vertices:
         for cell in row:
-            asp_code += "vertex(v" + str(cell) + ").\n"
+            asp_code += "vertex(v" + str(cell+1) + ").\n"
 
     for edge in edges:
         asp_code += "edge(v" + str(edge[0]) + ",v"+str(edge[1]) + ").\n"
 
+    # # Add constraints for assigned values
+    # flatten_sudoku = np.array(sudoku).reshape(num_vertices)
+    #
+    # counter = 0
+    # for row in vertices:
+    #     for cell in row:
+    #         if flatten_sudoku[counter] != 0:
+    #             asp_code += "color(v" + str(cell+1) + "," + str(flatten_sudoku[counter]) + ").\n"
+    #         counter += 1
+
     for c in range(number_colors):
-        asp_code += "color(V," + str(c+1) + ") :- vertex(V),"
+        asp_code += "color(V," + str(c+1) + ") :- vertex(V)"
         for c_other in range(number_colors):
             if c != c_other:
-                asp_code += " not color(V," + str(c_other+1) + ")"
+                asp_code += ", not color(V," + str(c_other+1) + ")"
 
         asp_code += ".\n"
 
-    # for edge in edges:
-    #     asp_code += ":- edge" + str(edge) + ", color(" + str(edge[0]) + ",C), " + "color(" + str(edge[1]) + ",C).\n"
+    # Add constraints for assigned values
+    flatten_sudoku = np.array(sudoku).reshape(num_vertices)
+
+    counter = 0
+    for row in vertices:
+        for cell in row:
+            if flatten_sudoku[counter] != 0:
+                asp_code += "color(v" + str(cell + 1) + "," + str(flatten_sudoku[counter]) + ").\n"
+            counter += 1
 
     asp_code += """:- edge(V1,V2), color(V1,C), color(V2,C).\n"""
 
     asp_code += """#show color/2."""
 
-    print(asp_code)
+    # print(asp_code)
+    # print(flatten_sudoku)
 
     control = clingo.Control()
     control.add("base", [], asp_code)

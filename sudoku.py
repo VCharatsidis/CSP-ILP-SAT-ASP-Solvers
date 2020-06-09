@@ -11,7 +11,7 @@ from sudoku_core import propagate
 
 from ortools.sat.python import cp_model
 
-INPUT = "inputs\\hard3.sudoku"
+#INPUT = "inputs\\hard3.sudoku"
 #INPUT = "inputs\\hard5.sudoku"
 
 #INPUT = "inputs\\easy3.sudoku"
@@ -55,7 +55,7 @@ def main():
         if verbose:
             print("Solving sudoku using the SAT encoding..");
             timer.start();
-        #with suppress_stdout_stderr():
+        with suppress_stdout_stderr():
             solved_sudoku = solve_sudoku_SAT(sudoku, k);
         if verbose:
             timer.stop();
@@ -67,7 +67,7 @@ def main():
             print("Solving sudoku using the CSP encoding..");
             timer.start();
 
-        #with suppress_stdout_stderr():
+        with suppress_stdout_stderr():
             solved_sudoku = solve_sudoku_CSP(sudoku,k);
         if verbose:
             timer.stop();
@@ -100,7 +100,7 @@ def main():
         if verbose:
             print("Solving sudoku using recursion and propagation..")
             timer.start()
-        #with suppress_stdout_stderr():
+        with suppress_stdout_stderr():
             solved_sudoku = solve_sudoku_prop(sudoku, k)
         if verbose:
             timer.stop()
