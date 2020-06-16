@@ -1,7 +1,7 @@
 from pysat.formula import CNF
 from pysat.solvers import MinisatGH
 import numpy as np
-# CSP dependencies
+
 from ortools.sat.python import cp_model
 import clingo
 import gurobipy as gp
@@ -256,6 +256,7 @@ def solve_sudoku_ASP(sudoku,k):
 
     number_colors = k ** 2
 
+    # Encoding graph
     asp_code = """"""
     for row in vertices:
         for cell in row:
@@ -264,16 +265,7 @@ def solve_sudoku_ASP(sudoku,k):
     for edge in edges:
         asp_code += "edge(v" + str(edge[0]) + ",v"+str(edge[1]) + ").\n"
 
-    # # Add constraints for assigned values
-    # flatten_sudoku = np.array(sudoku).reshape(num_vertices)
-    #
-    # counter = 0
-    # for row in vertices:
-    #     for cell in row:
-    #         if flatten_sudoku[counter] != 0:
-    #             asp_code += "color(v" + str(cell+1) + "," + str(flatten_sudoku[counter]) + ").\n"
-    #         counter += 1
-
+    # Declare that only one color/value can be used
     for c in range(number_colors):
         asp_code += "color(V," + str(c+1) + ") :- vertex(V)"
         for c_other in range(number_colors):
@@ -282,7 +274,7 @@ def solve_sudoku_ASP(sudoku,k):
 
         asp_code += ".\n"
 
-    # Add constraints for assigned values
+    # Add facts for given values
     flatten_sudoku = np.array(sudoku).reshape(num_vertices)
 
     counter = 0
@@ -292,11 +284,11 @@ def solve_sudoku_ASP(sudoku,k):
                 asp_code += "color(v" + str(cell + 1) + "," + str(flatten_sudoku[counter]) + ").\n"
             counter += 1
 
+    # Define the sudoku rules, no 2 adjacent edges can have the same value, so cells in same row, col box cannot have the same color/value.
     asp_code += """:- edge(V1,V2), color(V1,C), color(V2,C).\n"""
 
     asp_code += """#show color/2."""
 
-    # print(asp_code)
     # print(flatten_sudoku)
 
     control = clingo.Control()
