@@ -11,7 +11,7 @@ from sudoku_core import propagate
 
 from ortools.sat.python import cp_model
 
-#INPUT = "inputs\\hard3.sudoku"
+INPUT = "inputs\\hard3.sudoku"
 #INPUT = "inputs\\hard5.sudoku"
 
 #INPUT = "inputs\\easy3.sudoku"
